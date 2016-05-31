@@ -1,3 +1,4 @@
+#![feature(step_by)]
 #![feature(str_char)]
 
 #[macro_use]
@@ -43,13 +44,13 @@ impl T {
             data: 0,
             size: s.len()
         };
-        t.reset(s, 0, s.len());
+        t.reset(s);
         t
     }
 
-    fn reset(&mut self, s: &str, begin: usize, end: usize) -> &T {
+    fn reset(&mut self, s: &str) -> &T {
         self.data = 0;
-        self.size = end - begin;
+        self.size = s.len();
         for i in 0..self.size {
             self.data <<= 2;
             self.data |= TONUM[s.char_at(i) as usize] as u64;
@@ -100,17 +101,45 @@ impl fmt::Display for T {
 
 
 
-fn calculate(input: String, tsize: usize, begin: usize, incr: u32) -> HashMap<T, u32> {
+fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T, u32> {
     let mut counts = HashMap::with_capacity(4);
 
     let mut tmp = T::blank();
-    for i in begin..(input.len() + 1 - tsize) {
-        tmp.reset(&input[i..(i+tsize)], 0, 1);
+    for i in (begin..(input.len() + 1 - tsize)).step_by(incr) {
+        tmp.reset(&input[i..(i+tsize)]);
         let counter = counts.entry(tmp).or_insert(0);
         *counter += 1;
     }
 
     return counts;
+}
+
+
+
+
+fn write_frequencies(input: &str, tsize: usize) {
+    let sum: usize = input.len() + 1 - tsize;
+    let counts = calculate(input, tsize, 0, 1);
+
+    for (ch, count) in &counts {
+        let frequency: f64 = if sum != 0 {
+            (100 * count) as f64 / sum as f64
+        } else {
+            0.0
+        };
+        println!("{}\t{:.3}", ch, frequency);
+    }
+    println!("");
+}
+
+
+fn write_count(input: &str, tstr: &str) {
+    let size = tstr.len();
+    let counts = calculate(input, size, 0, 1);
+
+    let tmp = 0; // WTF Rust
+    let count = counts.get(&T::new(tstr)).unwrap_or(&tmp);
+    println!("{}\t{}", count, tstr);
 }
 
 
@@ -129,9 +158,11 @@ fn main() {
         .concat()
         .to_uppercase();
 
-    let counts = calculate(input, 1, 0, 1);
-
-    for (ch, count) in &counts {
-        println!("{}\t{}", ch, count);
-    }
+    write_frequencies(&input, 1);
+    write_frequencies(&input, 2);
+    write_count(&input, "GGT");
+    write_count(&input, "GGTA");
+    write_count(&input, "GGTATT");
+    write_count(&input, "GGTATTTTAATT");
+    write_count(&input, "GGTATTTTAATTTATAGT");
 }
