@@ -15,6 +15,9 @@ use std::cmp::Ordering;
 
 use std::fmt;
 
+use std::sync::{Arc, Mutex};
+use std::thread;
+
 lazy_static! {
     static ref TONUM: [u8; 256] = {
         let mut m: [u8; 256] = [0; 256];
@@ -116,10 +119,40 @@ fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T,
 
 
 
+fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
+    let num_cpus = 4;
+    let mut children = vec![];
+
+    let mut parent_counts = HashMap::new();
+    let combined_counts = Arc::new(Mutex::new(parent_counts));
+    let wrapped_input = Arc::new(input.to_owned());
+
+    for n in 0..num_cpus {
+        let combined_counts = combined_counts.clone();
+        let wrapped_input = wrapped_input.clone();
+        children.push(thread::spawn(move || {
+            let counts = calculate(&wrapped_input, tsize, n, num_cpus);
+            let mut combined_counts = combined_counts.lock().unwrap();
+            for (t, count) in counts.iter() {
+                let counter = combined_counts.entry(*t).or_insert(0);
+                *counter += *count;
+            }
+        }));
+    }
+
+    for child in children {
+        child.join().unwrap();
+    }
+
+    return Arc::try_unwrap(combined_counts).ok().expect("foobar").into_inner().unwrap();
+}
+
+
+
 
 fn write_frequencies(input: &str, tsize: usize) {
     let sum: usize = input.len() + 1 - tsize;
-    let counts = calculate(input, tsize, 0, 1);
+    let counts = parallel_calculate(input, tsize);
 
     for (ch, count) in &counts {
         let frequency: f64 = if sum != 0 {
@@ -135,7 +168,7 @@ fn write_frequencies(input: &str, tsize: usize) {
 
 fn write_count(input: &str, tstr: &str) {
     let size = tstr.len();
-    let counts = calculate(input, size, 0, 1);
+    let counts = parallel_calculate(input, size);
 
     let tmp = 0; // WTF Rust
     let count = counts.get(&T::new(tstr)).unwrap_or(&tmp);
