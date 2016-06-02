@@ -154,7 +154,10 @@ fn write_frequencies(input: &str, tsize: usize) {
     let sum: usize = input.len() + 1 - tsize;
     let counts = parallel_calculate(input, tsize);
 
-    for (ch, count) in &counts {
+    let mut counts_descending: Vec<(&T, &u32)> = counts.iter().collect();
+    counts_descending.sort_by(|a, b| { a.1.cmp(b.1).reverse() });
+
+    for (ch, count) in counts_descending {
         let frequency: f64 = if sum != 0 {
             (100 * count) as f64 / sum as f64
         } else {
