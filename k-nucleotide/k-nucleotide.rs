@@ -9,14 +9,17 @@ use std::io::prelude::*;
 
 use std::collections::HashMap;
 
-use std::hash::{Hash, Hasher};
+use std::hash::{BuildHasherDefault, Hash, Hasher};
 
+use std::cmp;
 use std::cmp::Ordering;
 
 use std::fmt;
 
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+use std::ptr;
 
 lazy_static! {
     static ref TONUM: [u8; 256] = {
@@ -82,6 +85,24 @@ impl Ord for T {
     }
 }
 
+#[derive(Default)]
+struct IdentityHasher {
+    data: u64,
+}
+
+impl Hasher for IdentityHasher {
+    fn finish(&self) -> u64 {
+        self.data
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        let num_bytes = cmp::min(8, bytes.len());
+        unsafe {
+            ptr::copy_nonoverlapping(bytes.get_unchecked(0), &mut self.data as *mut _ as *mut u8, num_bytes);
+        }
+    }
+}
+
 impl Hash for T {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.data.hash(state);
@@ -104,8 +125,8 @@ impl fmt::Display for T {
 
 
 
-fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T, u32> {
-    let mut counts = HashMap::with_capacity(4);
+fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T, u32, BuildHasherDefault<IdentityHasher>> {
+    let mut counts = HashMap::with_hasher(BuildHasherDefault::<IdentityHasher>::default());
 
     let mut tmp = T::blank();
     for i in (begin..(input.len() + 1 - tsize)).step_by(incr) {
@@ -119,11 +140,11 @@ fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T,
 
 
 
-fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
+fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32, BuildHasherDefault<IdentityHasher>> {
     let num_cpus = 4;
     let mut children = vec![];
 
-    let combined_counts = Arc::new(Mutex::new(HashMap::new()));
+    let combined_counts = Arc::new(Mutex::new(HashMap::with_hasher(BuildHasherDefault::<IdentityHasher>::default())));
     let wrapped_input = Arc::new(input.to_owned());
 
     for n in 0..num_cpus {
