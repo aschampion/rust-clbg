@@ -123,8 +123,7 @@ fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
     let num_cpus = 4;
     let mut children = vec![];
 
-    let mut parent_counts = HashMap::new();
-    let combined_counts = Arc::new(Mutex::new(parent_counts));
+    let combined_counts = Arc::new(Mutex::new(HashMap::new()));
     let wrapped_input = Arc::new(input.to_owned());
 
     for n in 0..num_cpus {
@@ -194,11 +193,11 @@ fn main() {
         .concat()
         .to_uppercase();
 
-    write_frequencies(&input, 1);
-    write_frequencies(&input, 2);
-    write_count(&input, "GGT");
-    write_count(&input, "GGTA");
-    write_count(&input, "GGTATT");
-    write_count(&input, "GGTATTTTAATT");
-    write_count(&input, "GGTATTTTAATTTATAGT");
+    for i in 1..3 {
+        write_frequencies(&input, i);
+    }
+
+    for t in ["GGT", "GGTA", "GGTATT", "GGTATTTTAATT", "GGTATTTTAATTTATAGT"].into_iter() {
+        write_count(&input, &&t);
+    }
 }
