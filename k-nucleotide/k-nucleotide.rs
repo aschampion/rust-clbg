@@ -45,7 +45,7 @@ impl T {
     fn new(s: &str) -> T {
         let mut t = T {
             data: 0,
-            size: s.len()
+            size: s.len(),
         };
         t.reset(s);
         t
@@ -109,7 +109,7 @@ fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T,
 
     let mut tmp = T::blank();
     for i in (begin..(input.len() + 1 - tsize)).step_by(incr) {
-        tmp.reset(&input[i..(i+tsize)]);
+        tmp.reset(&input[i..(i + tsize)]);
         let counter = counts.entry(tmp).or_insert(0);
         *counter += 1;
     }
@@ -154,7 +154,7 @@ fn write_frequencies(input: &str, tsize: usize) {
     let counts = parallel_calculate(input, tsize);
 
     let mut counts_descending: Vec<(&T, &u32)> = counts.iter().collect();
-    counts_descending.sort_by(|a, b| { a.1.cmp(b.1).reverse() });
+    counts_descending.sort_by(|a, b| a.1.cmp(b.1).reverse());
 
     for (ch, count) in counts_descending {
         let frequency: f64 = if sum != 0 {
@@ -181,7 +181,7 @@ fn write_count(input: &str, tstr: &str) {
 
 fn main() {
     let stdin = io::stdin();
-    let input:String = stdin.lock().lines()
+    let input: String = stdin.lock().lines()
         .map(|line| line.unwrap())
         .skip_while(|line| !line.starts_with(">THREE"))
         .skip(1)
