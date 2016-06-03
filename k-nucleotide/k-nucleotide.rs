@@ -101,8 +101,6 @@ impl fmt::Display for T {
 }
 
 
-
-
 fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T, u32> {
     let mut counts = HashMap::with_capacity(4);
 
@@ -113,9 +111,8 @@ fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T,
         *counter += 1;
     }
 
-    return counts;
+    counts
 }
-
 
 
 fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
@@ -131,7 +128,7 @@ fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
         children.push(thread::spawn(move || {
             let counts = calculate(&wrapped_input, tsize, n, num_cpus);
             let mut combined_counts = combined_counts.lock().unwrap();
-            for (t, count) in counts.iter() {
+            for (t, count) in &counts {
                 let counter = combined_counts.entry(*t).or_insert(0);
                 *counter += *count;
             }
@@ -142,10 +139,8 @@ fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
         child.join().unwrap();
     }
 
-    return Arc::try_unwrap(combined_counts).ok().expect("foobar").into_inner().unwrap();
+    Arc::try_unwrap(combined_counts).ok().expect("foobar").into_inner().unwrap()
 }
-
-
 
 
 fn write_frequencies(input: &str, tsize: usize) {
@@ -177,17 +172,13 @@ fn write_count(input: &str, tstr: &str) {
 }
 
 
-
 fn main() {
     let stdin = io::stdin();
     let input: String = stdin.lock().lines()
         .map(|line| line.unwrap())
         .skip_while(|line| !line.starts_with(">THREE"))
         .skip(1)
-        .take_while(|line| !line.starts_with(">"))
-        // .skip_while(|line| !line.starts_with(">THREE"))
-        // .take_while(|line| match line { Ok(l) => !l.starts_with(">"), Err(e) => false })
-        // .map(|line| line.unwrap())
+        .take_while(|line| !line.starts_with('>'))
         .collect::<Vec<_>>()
         .concat()
         .to_uppercase();
@@ -197,6 +188,6 @@ fn main() {
     }
 
     for t in ["GGT", "GGTA", "GGTATT", "GGTATTTTAATT", "GGTATTTTAATTTATAGT"].into_iter() {
-        write_count(&input, &&t);
+        write_count(&input, t);
     }
 }
