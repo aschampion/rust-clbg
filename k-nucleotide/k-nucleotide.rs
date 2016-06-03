@@ -17,6 +17,8 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use std::mem;
+
 lazy_static! {
     static ref TONUM: [u8; 256] = {
         let mut m: [u8; 256] = [0; 256];
@@ -30,7 +32,7 @@ lazy_static! {
 static TOCHAR: [char; 4] = ['A', 'C', 'T', 'G'];
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq)]
 struct T {
     data: u64,
     size: usize,
@@ -66,8 +68,6 @@ impl PartialEq for T {
         self.data.eq(&other.data)
     }
 }
-
-impl Eq for T {}
 
 impl PartialOrd for T {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -120,13 +120,12 @@ fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
     let mut children = vec![];
 
     let combined_counts = Arc::new(Mutex::new(HashMap::new()));
-    let wrapped_input = Arc::new(input.to_owned());
+    let input: &'static str = unsafe { mem::transmute(input) };
 
     for n in 0..num_cpus {
         let combined_counts = combined_counts.clone();
-        let wrapped_input = wrapped_input.clone();
         children.push(thread::spawn(move || {
-            let counts = calculate(&wrapped_input, tsize, n, num_cpus);
+            let counts = calculate(&input, tsize, n, num_cpus);
             let mut combined_counts = combined_counts.lock().unwrap();
             for (t, count) in &counts {
                 let counter = combined_counts.entry(*t).or_insert(0);
@@ -166,8 +165,7 @@ fn write_count(input: &str, tstr: &str) {
     let size = tstr.len();
     let counts = parallel_calculate(input, size);
 
-    let tmp = 0; // WTF Rust
-    let count = counts.get(&T::new(tstr)).unwrap_or(&tmp);
+    let count = counts.get(&T::new(tstr)).cloned().unwrap_or(0);
     println!("{}\t{}", count, tstr);
 }
 
