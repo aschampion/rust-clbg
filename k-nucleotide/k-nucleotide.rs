@@ -1,5 +1,4 @@
 #![feature(step_by)]
-#![feature(str_char)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -54,9 +53,9 @@ impl T {
     fn reset(&mut self, s: &str) -> &T {
         self.data = 0;
         self.size = s.len();
-        for i in 0..self.size {
+        for c in s.chars() {
             self.data <<= 2;
-            self.data |= TONUM[s.char_at(i) as usize] as u64;
+            self.data |= TONUM[c as usize] as u64;
         }
         self
     }
