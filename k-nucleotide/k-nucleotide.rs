@@ -19,6 +19,8 @@ use std::thread;
 
 use std::mem;
 
+use std::str;
+
 lazy_static! {
     static ref TONUM: [u8; 256] = {
         let mut m: [u8; 256] = [0; 256];
@@ -40,10 +42,10 @@ struct T {
 
 impl T {
     fn blank() -> T {
-        T::new("")
+        T::new(b"")
     }
 
-    fn new(s: &str) -> T {
+    fn new(s: &[u8]) -> T {
         let mut t = T {
             data: 0,
             size: s.len(),
@@ -52,12 +54,12 @@ impl T {
         t
     }
 
-    fn reset(&mut self, s: &str) -> &T {
+    fn reset(&mut self, s: &[u8]) -> &T {
         self.data = 0;
         self.size = s.len();
-        for c in s.chars() {
+        for c in s {
             self.data <<= 2;
-            self.data |= TONUM[c as usize] as u64;
+            self.data |= TONUM[*c as usize] as u64;
         }
         self
     }
@@ -101,7 +103,7 @@ impl fmt::Display for T {
 }
 
 
-fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T, u32> {
+fn calculate(input: &[u8], tsize: usize, begin: usize, incr: usize) -> HashMap<T, u32> {
     let mut counts = HashMap::new();
 
     let mut tmp = T::blank();
@@ -115,12 +117,12 @@ fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T,
 }
 
 
-fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
+fn parallel_calculate(input: &[u8], tsize: usize) -> HashMap<T, u32> {
     let num_cpus = 4;
     let mut children = vec![];
 
     let combined_counts = Arc::new(Mutex::new(HashMap::new()));
-    let input: &'static str = unsafe { mem::transmute(input) };
+    let input: &'static [u8] = unsafe { mem::transmute(input) };
 
     for n in 0..num_cpus {
         let combined_counts = combined_counts.clone();
@@ -142,7 +144,7 @@ fn parallel_calculate(input: &str, tsize: usize) -> HashMap<T, u32> {
 }
 
 
-fn write_frequencies(input: &str, tsize: usize) {
+fn write_frequencies(input: &[u8], tsize: usize) {
     let sum: usize = input.len() + 1 - tsize;
     let counts = parallel_calculate(input, tsize);
 
@@ -161,12 +163,12 @@ fn write_frequencies(input: &str, tsize: usize) {
 }
 
 
-fn write_count(input: &str, tstr: &str) {
+fn write_count(input: &[u8], tstr: &[u8]) {
     let size = tstr.len();
     let counts = parallel_calculate(input, size);
 
     let count = counts.get(&T::new(tstr)).cloned().unwrap_or(0);
-    println!("{}\t{}", count, tstr);
+    println!("{}\t{}", count, str::from_utf8(tstr).unwrap());
 }
 
 
@@ -180,12 +182,14 @@ fn main() {
         .collect::<Vec<_>>()
         .concat()
         .to_uppercase();
+    let input_bytes = input.as_bytes();
 
     for i in 1..3 {
-        write_frequencies(&input, i);
+        write_frequencies(&input_bytes, i);
     }
 
-    for t in ["GGT", "GGTA", "GGTATT", "GGTATTTTAATT", "GGTATTTTAATTTATAGT"].into_iter() {
-        write_count(&input, t);
+    let sequences: Vec<&[u8]> = vec![b"GGT", b"GGTA", b"GGTATT", b"GGTATTTTAATT", b"GGTATTTTAATTTATAGT"];
+    for t in sequences.into_iter() {
+        write_count(&input_bytes, t);
     }
 }
