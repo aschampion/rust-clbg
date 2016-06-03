@@ -102,7 +102,7 @@ impl fmt::Display for T {
 
 
 fn calculate(input: &str, tsize: usize, begin: usize, incr: usize) -> HashMap<T, u32> {
-    let mut counts = HashMap::with_capacity(4);
+    let mut counts = HashMap::new();
 
     let mut tmp = T::blank();
     for i in (begin..(input.len() + 1 - tsize)).step_by(incr) {
